@@ -1,0 +1,14 @@
+{
+  "name": "mock-customer-apis",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Standalone simulated APIs for Customer B (BairroBox) and Customer C (GlobalGoods). Not the candidate's deliverable — see README.md.",
+  "main": "main.js",
+  "scripts": {
+    "start": "node --watch main.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "order_id": "FM-100245",
+  "store_id": "SP-014",
+  "store_name": "FreshMart Pinheiros",
+  "placed_at": "2026-06-20T14:32:00Z",
+  "state": "NEW",
+  "currency": "BRL",
+  "lines": [
+    { "sku": "7891000", "desc": "Leite Integral 1L", "qty": 6, "price": 5.49 },
+    { "sku": "7890011", "desc": "Pão de Forma", "qty": 2, "price": 8.9 }
+  ],
+  "ship_to": {
+    "street": "Rua dos Pinheiros 123",
+    "city": "São Paulo",
+    "country": "BR"
+  }
+}

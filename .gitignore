@@ -1,0 +1,17 @@
+# Dev-only (not deliverables — keep the public repo lean)
+BRIEF.md
+CLAUDE.md
+.claude/
+
+# Deps / build / env
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.sample
+
+# OS / editor
+.DS_Store
+__MACOSX/
+*.log

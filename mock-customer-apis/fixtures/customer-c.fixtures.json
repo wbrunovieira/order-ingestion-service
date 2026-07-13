@@ -1,0 +1,71 @@
+[
+  {
+    "reference": "GG_77530",
+    "location": { "code": "MX-CDMX-01", "label": "GlobalGoods Reforma" },
+    "timestamp": "06-20-2026 08:50 AM",
+    "order_status": 1,
+    "money": { "currency": "MXN", "unit": "cents" },
+    "products": [
+      { "code": "C03", "title": "Tortilla de Maiz 1kg", "amount": 1, "uom": "unit", "line_total": 3200 }
+    ],
+    "destination": { "address": "Paseo de la Reforma 222", "city": "Mexico City", "country": "Mexico" }
+  },
+  {
+    "reference": "GG_77531",
+    "location": { "code": "MX-CDMX-02", "label": "GlobalGoods Polanco" },
+    "timestamp": "06-20-2026 09:15 AM",
+    "order_status": 1,
+    "money": { "currency": "MXN", "unit": "cents" },
+    "products": [
+      { "code": "A12", "title": "Avocado (by kg)", "amount": 1.5, "uom": "kg", "line_total": 13500 },
+      { "code": "B07", "title": "Tortillas 1kg", "amount": 2, "uom": "unit", "line_total": 4400 }
+    ],
+    "destination": { "address": "Av. Masaryk 111", "city": "Mexico City", "country": "Mexico" }
+  },
+  {
+    "reference": "GG_77532",
+    "location": { "code": "MX-GDL-01", "label": "GlobalGoods Chapultepec" },
+    "timestamp": "06-20-2026 09:32 AM",
+    "order_status": 2,
+    "money": { "currency": "MXN", "unit": "cents" },
+    "products": [
+      { "code": "A12", "title": "Avocado (by kg)", "amount": 0.75, "uom": "kg", "line_total": 6750 }
+    ],
+    "destination": { "address": "Av. Chapultepec 480", "city": "Guadalajara", "country": "Mexico" }
+  },
+  {
+    "reference": "GG_77533",
+    "location": { "code": "MX-CDMX-02", "label": "GlobalGoods Polanco" },
+    "timestamp": "06-20-2026 09:41 AM",
+    "order_status": 3,
+    "money": { "currency": "MXN", "unit": "cents" },
+    "products": [
+      { "code": "D21", "title": "Limon (by kg)", "amount": 0, "uom": "kg", "line_total": 0 },
+      { "code": "B07", "title": "Tortillas 1kg", "amount": 1, "uom": "unit", "line_total": 2200 }
+    ],
+    "destination": { "address": "Av. Masaryk 111", "city": "Mexico City", "country": "Mexico" }
+  },
+  {
+    "reference": "GG_77531",
+    "location": { "code": "MX-CDMX-02", "label": "GlobalGoods Polanco" },
+    "timestamp": "06-20-2026 09:15 AM",
+    "order_status": 1,
+    "money": { "currency": "MXN", "unit": "cents" },
+    "products": [
+      { "code": "A12", "title": "Avocado (by kg)", "amount": 1.5, "uom": "kg", "line_total": 13500 },
+      { "code": "B07", "title": "Tortillas 1kg", "amount": 2, "uom": "unit", "line_total": 4400 }
+    ],
+    "destination": { "address": "Av. Masaryk 111", "city": "Mexico City", "country": "Mexico" }
+  },
+  {
+    "reference": "GG_77534",
+    "location": { "code": "MX-CDMX-01", "label": "GlobalGoods Reforma" },
+    "timestamp": "06-20-2026 09:58 AM",
+    "order_status": 5,
+    "money": { "currency": "MXN", "unit": "cents" },
+    "products": [
+      { "code": "C03", "title": "Tortilla de Maiz 1kg", "amount": 3, "uom": "unit", "line_total": 9600 }
+    ],
+    "destination": { "address": "Paseo de la Reforma 222", "city": "Mexico City", "country": "Mexico" }
+  }
+]

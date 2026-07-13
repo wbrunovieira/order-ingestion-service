@@ -4,22 +4,9 @@ import { validateCanonicalOrder } from '../../orders/canonical-order.validator';
 import { MapperRegistryService } from '../normalization/mapper-registry.service';
 import type { MapOutcome } from '../normalization/order-mapper';
 import { OrderRepository } from '../persistence/order.repository';
-import type { DataWarning, MappingFailure } from './ingestion-failure';
-
-export interface IngestionOutcome {
-  customerId: string;
-  /** Records handed to us by the source. */
-  received: number;
-  /** Records that became canonical orders. */
-  normalized: number;
-  /** ...of which were orders we had never seen. */
-  created: number;
-  /** ...of which we already had, and just updated. Re-reads, not double writes. */
-  duplicated: number;
-  failed: number;
-  failures: MappingFailure[];
-  warnings: DataWarning[];
-}
+import { IngestionStatsService } from '../stats/ingestion-stats.service';
+import type { MappingFailure } from './ingestion-failure';
+import type { IngestionOutcome } from './ingestion-outcome';
 
 /**
  * The one pipeline both ingestion modes feed into: normalize -> validate -> dedup ->
@@ -36,6 +23,7 @@ export class IngestionPipelineService {
   constructor(
     private readonly mappers: MapperRegistryService,
     private readonly orders: OrderRepository,
+    private readonly stats: IngestionStatsService,
   ) {}
 
   async ingest(
@@ -74,6 +62,10 @@ export class IngestionPipelineService {
           `field=${failure.field}: ${failure.reason}`,
       );
     }
+
+    // Counters and reasons, per customer. A failure that is only in a log is a
+    // failure nobody is watching.
+    this.stats.record(outcome);
 
     return outcome;
   }

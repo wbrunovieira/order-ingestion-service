@@ -2,10 +2,8 @@ import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CustomerRegistryService } from '../../../customers/customer-registry.service';
 import type { PullCustomerConfig } from '../../../customers/customer.config';
-import {
-  IngestionPipelineService,
-  type IngestionOutcome,
-} from '../../pipeline/ingestion-pipeline.service';
+import type { IngestionOutcome } from '../../pipeline/ingestion-outcome';
+import { IngestionPipelineService } from '../../pipeline/ingestion-pipeline.service';
 import { SourceReaderService } from './source-reader.service';
 
 /**

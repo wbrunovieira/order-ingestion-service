@@ -14,6 +14,8 @@ import {
 } from './sources/polling/source-http.client';
 import { SourceReaderService } from './sources/polling/source-reader.service';
 import { WebhookController } from './sources/webhook/webhook.controller';
+import { IngestionStatsService } from './stats/ingestion-stats.service';
+import { StatsController } from './stats/stats.controller';
 
 /**
  * Ingestion: the sources (push and pull), the shared pipeline they both feed, and the
@@ -24,12 +26,13 @@ import { WebhookController } from './sources/webhook/webhook.controller';
  */
 @Module({
   imports: [ScheduleModule.forRoot(), CustomersModule, PersistenceModule],
-  controllers: [WebhookController],
+  controllers: [WebhookController, StatsController],
   providers: [
     FreshmartMapper,
     BairroboxMapper,
     GlobalgoodsMapper,
     MapperRegistryService,
+    IngestionStatsService,
     IngestionPipelineService,
     { provide: SourceHttpClient, useClass: FetchSourceHttpClient },
     SourceReaderService,

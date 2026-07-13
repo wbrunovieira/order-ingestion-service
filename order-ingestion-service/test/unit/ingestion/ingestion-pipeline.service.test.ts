@@ -9,6 +9,7 @@ import { FreshmartMapper } from '../../../src/ingestion/normalization/mappers/fr
 import { GlobalgoodsMapper } from '../../../src/ingestion/normalization/mappers/globalgoods.mapper';
 import { InMemoryOrderRepository } from '../../../src/ingestion/persistence/in-memory-order.repository';
 import { IngestionPipelineService } from '../../../src/ingestion/pipeline/ingestion-pipeline.service';
+import { IngestionStatsService } from '../../../src/ingestion/stats/ingestion-stats.service';
 
 const FIXTURES = resolve(__dirname, '../../../../mock-customer-apis/fixtures');
 
@@ -31,6 +32,7 @@ describe('IngestionPipelineService', () => {
         new GlobalgoodsMapper(),
       ),
       repository,
+      new IngestionStatsService(),
     );
   });
 

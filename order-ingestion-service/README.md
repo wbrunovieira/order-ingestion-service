@@ -38,11 +38,13 @@ then on their own interval) and pull from the mocks.
 curl http://localhost:3000/orders   # canonical orders
 ```
 
-Their real cadence is 15 and 5 minutes, which is a long time to wait to see the
-second cycle deduplicate. To watch it happen:
+Their real cadence is **15 and 5 minutes** — that's what the config declares and what
+you get by default. It's also a long time to wait to see the second cycle deduplicate,
+so there's a **local development override** (not a production setting, and unset in
+every other environment):
 
 ```bash
-POLL_INTERVAL_MS=4000 pnpm start
+POLL_INTERVAL_MS=4000 pnpm start   # dev/demo only — overrides both intervals
 ```
 
 The first cycle creates; by the third, the sliding windows have wrapped and every
@@ -325,16 +327,47 @@ file) plus a mapper — not a new pipeline. That's the point.
 |---|---|
 | `POST /webhooks/:customer` | push ingestion (Customer A). Accepts one order or a batch. Answers `202` — the order is ours now; an unknown customer is a `404` |
 | `GET /orders` | canonical orders |
-| `GET /stats` | per-customer counters + recent mapping failures with reasons — *not built yet, see Build status* |
+| `GET /stats` | per-customer counters + recent mapping failures and warnings, each with a field and a reason |
 | `GET /health/liveness`, `GET /health/readiness` | health checks (from the scaffold) |
 
 ---
 
+## Observability
+
+`GET /stats` is small on purpose, but it's the right *shape*. After a few cycles:
+
+```
+CUSTOMER      recv  norm  crea  dupl  fail  warn  batches
+bairrobox       20    18     6    12     2    16        5
+globalgoods     20    20     5    15     0     3        5
+freshmart        1     1     1     0     0     0        1
+```
+
+BairroBox handed us 20 records and only 6 were new — the other 12 are re-reads landing
+on rows they already own. A high `duplicated` count is the design working, not a
+problem.
+
+Every failure and warning carries the customer, the order, **the field and the
+reason**:
+
+```
+bairrobox 5584 [endereco]:   delivery address is empty — the order is undeliverable
+bairrobox 5583 [items.0]:    line dropped: quantity is 0, which is unorderable and would
+                             divide by zero when deriving a unit price
+bairrobox 5581 [store_code]: store code is empty — order is incomplete but still fulfillable
+```
+
+The reason this matters beyond debugging: a per-customer **failure rate**, and a volume
+you can compare against yesterday's, are how you notice a customer has silently changed
+their contract *before* they call to complain. That's the seed of the alerting in
+[`DESIGN.md`](../DESIGN.md) — here it's a counter; in production it's a metric with a
+threshold.
+
 ## Tests
 
 ```bash
-pnpm test               # unit — normalizers, transforms, traps, idempotency
-pnpm test:integration   # black-box HTTP against the app
+pnpm test               # unit — transforms, normalizers, traps, idempotency, polling
+pnpm test:integration   # black-box HTTP against the app (webhook → orders)
 pnpm lint
 ```
 
@@ -355,7 +388,7 @@ kill the good ones in its batch**.
 - [x] Persistence + idempotent upsert by stable `orderId`
 - [x] Customer B poller + messy-flat normalizer
 - [x] Customer C poller + international normalizer + pagination + rate-limit backoff
-- [ ] Graceful failures with reasons + `/stats`
+- [x] Graceful failures with reasons + `/stats`
 - [ ] Integration tests (webhook → orders)
 
 > Production concerns deliberately **not** built here — queues, DLQs, cursors,

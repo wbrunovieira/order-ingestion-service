@@ -8,6 +8,7 @@ import { FreshmartMapper } from '../../../src/ingestion/normalization/mappers/fr
 import { GlobalgoodsMapper } from '../../../src/ingestion/normalization/mappers/globalgoods.mapper';
 import { InMemoryOrderRepository } from '../../../src/ingestion/persistence/in-memory-order.repository';
 import { IngestionPipelineService } from '../../../src/ingestion/pipeline/ingestion-pipeline.service';
+import { IngestionStatsService } from '../../../src/ingestion/stats/ingestion-stats.service';
 import { PollingService } from '../../../src/ingestion/sources/polling/polling.service';
 import {
   SourceHttpClient,
@@ -106,6 +107,7 @@ describe('polling', () => {
         new GlobalgoodsMapper(),
       ),
       repository,
+      new IngestionStatsService(),
     );
 
     polling = new PollingService(

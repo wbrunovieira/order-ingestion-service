@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { CUSTOMERS } from '../../../src/customers/customer.config';
 import { stableOrderId } from '../../../src/ingestion/dedup/order-id';
 import { MapperRegistryService } from '../../../src/ingestion/normalization/mapper-registry.service';
+import { BairroboxMapper } from '../../../src/ingestion/normalization/mappers/bairrobox.mapper';
 import { FreshmartMapper } from '../../../src/ingestion/normalization/mappers/freshmart.mapper';
+import { GlobalgoodsMapper } from '../../../src/ingestion/normalization/mappers/globalgoods.mapper';
 import { InMemoryOrderRepository } from '../../../src/ingestion/persistence/in-memory-order.repository';
 import { IngestionPipelineService } from '../../../src/ingestion/pipeline/ingestion-pipeline.service';
 
@@ -23,7 +25,11 @@ describe('IngestionPipelineService', () => {
   beforeEach(() => {
     repository = new InMemoryOrderRepository();
     pipeline = new IngestionPipelineService(
-      new MapperRegistryService(new FreshmartMapper()),
+      new MapperRegistryService(
+        new FreshmartMapper(),
+        new BairroboxMapper(),
+        new GlobalgoodsMapper(),
+      ),
       repository,
     );
   });

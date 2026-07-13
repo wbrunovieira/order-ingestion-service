@@ -22,12 +22,30 @@ export interface RateLimit {
   requestsPerMinute: number;
 }
 
+/**
+ * How a source pages, described rather than coded, so the reader can walk any
+ * paginated feed without knowing whose it is.
+ *
+ * A source with no `pagination` returns everything in one response.
+ */
+export interface PaginationConfig {
+  /** Query parameter carrying the page number. */
+  pageParam: string;
+  startPage: number;
+  /** Where the records live in the response body. */
+  recordsField: string;
+  /** Boolean field telling us to keep walking. */
+  hasMoreField: string;
+  /** A stop, so a source stuck on hasMore:true cannot spin us forever. */
+  maxPagesPerCycle: number;
+}
+
 export interface PullSource {
   url: string;
-  /** GlobalGoods pages its results; BairroBox returns one flat array. */
-  paginated: boolean;
   pollIntervalMs: number;
   rateLimit?: RateLimit;
+  /** Absent for BairroBox, which returns one flat array. */
+  pagination?: PaginationConfig;
 }
 
 interface BaseCustomerConfig {
@@ -76,6 +94,20 @@ export type CustomerConfig = PushCustomerConfig | PullCustomerConfig;
 const MOCK_API_BASE_URL =
   process.env.CUSTOMER_APIS_BASE_URL ?? 'http://localhost:4000';
 
+/**
+ * Development escape hatch: poll everyone every N ms instead of at their real
+ * cadence. Nobody wants to wait 15 minutes to watch the second cycle deduplicate.
+ * Unset in production, where each customer's declared interval is what counts.
+ */
+const POLL_INTERVAL_OVERRIDE_MS = Number(process.env.POLL_INTERVAL_MS ?? '');
+
+function pollEvery(ms: number): number {
+  return Number.isFinite(POLL_INTERVAL_OVERRIDE_MS) &&
+    POLL_INTERVAL_OVERRIDE_MS > 0
+    ? POLL_INTERVAL_OVERRIDE_MS
+    : ms;
+}
+
 export const CUSTOMERS = {
   /**
    * FreshMart — enterprise, pushes clean JSON at us in real time. Already sends
@@ -114,8 +146,8 @@ export const CUSTOMERS = {
     defaultCountry: 'BR',
     source: {
       url: `${MOCK_API_BASE_URL}/customer-b/orders`,
-      paginated: false,
-      pollIntervalMs: 15 * 60 * 1000,
+      pollIntervalMs: pollEvery(15 * 60 * 1000),
+      // No pagination: they return their whole (sliding) window in one array.
     },
     statusMap: {
       Novo: 'received',
@@ -144,9 +176,15 @@ export const CUSTOMERS = {
     defaultCountry: 'MX',
     source: {
       url: `${MOCK_API_BASE_URL}/customer-c/orders`,
-      paginated: true,
-      pollIntervalMs: 5 * 60 * 1000,
+      pollIntervalMs: pollEvery(5 * 60 * 1000),
       rateLimit: { requestsPerMinute: 60 },
+      pagination: {
+        pageParam: 'page',
+        startPage: 1,
+        recordsField: 'orders',
+        hasMoreField: 'hasMore',
+        maxPagesPerCycle: 50,
+      },
     },
     statusMap: {
       '1': 'received',

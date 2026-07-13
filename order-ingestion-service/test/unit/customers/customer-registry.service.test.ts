@@ -38,11 +38,17 @@ describe('CustomerRegistryService', () => {
     const [bairrobox, globalgoods] = registry.pullCustomers();
 
     expect(bairrobox.source.pollIntervalMs).toBe(15 * 60 * 1000);
-    expect(bairrobox.source.paginated).toBe(false);
+    expect(bairrobox.source.pagination).toBeUndefined(); // one flat array
 
     expect(globalgoods.source.pollIntervalMs).toBe(5 * 60 * 1000);
-    expect(globalgoods.source.paginated).toBe(true);
     expect(globalgoods.source.rateLimit?.requestsPerMinute).toBe(60);
+    // Described, not coded: the reader walks any paginated source from this alone.
+    expect(globalgoods.source.pagination).toMatchObject({
+      pageParam: 'page',
+      startPage: 1,
+      recordsField: 'orders',
+      hasMoreField: 'hasMore',
+    });
   });
 
   it('declares a source timezone for every customer sending local time', () => {

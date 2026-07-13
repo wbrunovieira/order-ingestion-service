@@ -31,13 +31,31 @@ curl -X POST http://localhost:3000/webhooks/freshmart \
   -d @../mock-customer-apis/fixtures/customer-a.sample.json
 ```
 
-Customers B and C need no action — their pollers start on boot and pull on their
-own schedules.
+Customers B and C need no action — their pollers start on boot (once immediately,
+then on their own interval) and pull from the mocks.
 
 ```bash
 curl http://localhost:3000/orders   # canonical orders
-curl http://localhost:3000/stats    # per-customer counters + mapping failures
 ```
+
+Their real cadence is 15 and 5 minutes, which is a long time to wait to see the
+second cycle deduplicate. To watch it happen:
+
+```bash
+POLL_INTERVAL_MS=4000 pnpm start
+```
+
+The first cycle creates; by the third, the sliding windows have wrapped and every
+record is a re-read:
+
+```
+bairrobox:   received=4 normalized=4 created=4 duplicated=0 failed=0
+bairrobox:   received=4 normalized=3 created=0 duplicated=3 failed=1
+globalgoods: received=4 normalized=4 created=0 duplicated=4 failed=0
+```
+
+`created=0, duplicated=4` and no new rows — the same orders, upserted onto the rows
+they already own.
 
 ---
 
@@ -251,12 +269,33 @@ don't agree on what states exist:
 address in their data is in São Paulo and they are a Brazilian SMB. Declared in
 config, so it's one line to change if that's wrong.
 
+**Customer B sends no product code, and the canonical model requires `item.sku`.**
+Every option here is imperfect: an empty string fails validation and would drop
+*every* BairroBox order; a generated id would be unstable, so the same product would
+look new on every poll. So the sku is a **slug of the product name, namespaced** —
+`bairrobox:arroz-5kg` — so nobody mistakes it for a code they issued.
+
+The trade-off, stated plainly: **if they rename a product, its sku changes** and
+downstream it looks like a different product. That's acceptable while the sku is only
+a line identifier within an order, and the real fix isn't cleverer code — it's asking
+BairroBox for a product code. That's the kind of gap worth raising with a customer
+rather than silently papering over.
+
 **Customer B's address is one string** (`"Rua Augusta 500, Sao Paulo"`). Split on the
 last comma: everything before is `line1`, the last part is `city`.
 
-**Customer C's pagination advances on the server.** Requesting `page=1` advances
-their window — so a poll cycle walks `page=1 → hasMore → page=2` exactly once and
-never re-requests page 1 mid-cycle, which would skip records.
+**Customer C's pagination advances on the server.** Requesting `page=1` isn't a read,
+it's a side effect: it moves the window on *their* side. So a cycle walks
+`page=1 → hasMore → page=2` exactly once and never re-requests page 1 mid-cycle,
+which would silently skip whatever the cursor moved past.
+
+Their `429` happens to be returned *before* that advance, which is the only reason
+retrying a throttled page is safe. **We depend on that, and it's an assumption about
+their implementation, not a promise in their contract** — a source that advanced its
+cursor and *then* rejected us would lose records here. A page fetch that fails outright
+therefore abandons the whole cycle rather than restarting it; the next cycle re-reads
+an overlapping window anyway, and the upsert makes the overlap free. The real fix is a
+client-side cursor, which is in [`DESIGN.md`](../DESIGN.md).
 
 ---
 
@@ -314,10 +353,10 @@ kill the good ones in its batch**.
 - [x] Customer config registry + status maps
 - [x] Webhook ingestion (A) + shared pipeline
 - [x] Persistence + idempotent upsert by stable `orderId`
-- [ ] Customer B poller + messy-flat normalizer
-- [ ] Customer C poller + international normalizer + pagination
+- [x] Customer B poller + messy-flat normalizer
+- [x] Customer C poller + international normalizer + pagination + rate-limit backoff
 - [ ] Graceful failures with reasons + `/stats`
-- [ ] Rate-limit backoff (C)
+- [ ] Integration tests (webhook → orders)
 
 > Production concerns deliberately **not** built here — queues, DLQs, cursors,
 > per-customer isolation, contract-drift detection — are in

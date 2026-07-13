@@ -47,6 +47,15 @@ every other environment):
 POLL_INTERVAL_MS=4000 pnpm start   # dev/demo only — overrides both intervals
 ```
 
+### Environment
+
+| Variable | Default | What it does |
+|---|---|---|
+| `PORT` | `3000` | |
+| `CUSTOMER_APIS_BASE_URL` | `http://localhost:4000` | Where the customers' APIs live. Here, the mock project; in production, each customer's real base URL |
+| `POLL_INTERVAL_MS` | *unset* | **Dev only.** Overrides both customers' real cadences (15 min, 5 min) so you don't wait a quarter of an hour to see the second cycle deduplicate. Unset in production, where config decides |
+| `POLLING_ENABLED` | `true` | Set `false` to run **webhook-only**. Used by the integration tests (which must not depend on the mocks being up), and by every replica but one if this service is scaled out — polling is a *singleton* concern, and N replicas would spend N times a customer's rate limit on work the upsert then discards. At scale this becomes a scheduler with leases ([`DESIGN.md`](../DESIGN.md)); here it's a flag |
+
 The first cycle creates; by the third, the sliding windows have wrapped and every
 record is a re-read:
 
@@ -389,7 +398,7 @@ kill the good ones in its batch**.
 - [x] Customer B poller + messy-flat normalizer
 - [x] Customer C poller + international normalizer + pagination + rate-limit backoff
 - [x] Graceful failures with reasons + `/stats`
-- [ ] Integration tests (webhook → orders)
+- [x] Integration tests (webhook → orders), CI
 
 > Production concerns deliberately **not** built here — queues, DLQs, cursors,
 > per-customer isolation, contract-drift detection — are in

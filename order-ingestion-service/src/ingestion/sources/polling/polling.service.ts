@@ -30,6 +30,18 @@ export class PollingService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
+    // Pollers are a singleton concern, not a per-instance one: if this service runs
+    // as three replicas, three pollers hitting the same customer would triple our
+    // request rate against their limit for nothing (the upsert would dedupe the
+    // work, but we would still have spent it). So it can be switched off — for the
+    // integration tests, which must not depend on the mock APIs being up, and in
+    // production for every replica but the one that polls. DESIGN.md covers what
+    // replaces this at scale: a scheduler with leases, not a flag.
+    if (process.env.POLLING_ENABLED === 'false') {
+      this.logger.log('Polling disabled (POLLING_ENABLED=false)');
+      return;
+    }
+
     for (const customer of this.customers.pullCustomers()) {
       const intervalMs = customer.source.pollIntervalMs;
 

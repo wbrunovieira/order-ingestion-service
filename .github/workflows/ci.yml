@@ -1,0 +1,55 @@
+name: CI
+
+# The quality gate for the order ingestion service: lint, typecheck, tests.
+# Small on purpose (no deploy, no matrix, no coverage thresholds) — the brief asks
+# for quality AND speed, and a gate nobody trusts is worse than no gate.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    name: lint · typecheck · test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: order-ingestion-service
+    steps:
+      - uses: actions/checkout@v4
+
+      # No `version:` here on purpose. The pnpm version is pinned ONCE, in
+      # package.json's `packageManager` field, and this reads it — so CI and every
+      # developer run the same package manager. Two versions is exactly how the
+      # scaffold came to install on one machine and fail on another.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: order-ingestion-service/package.json
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: order-ingestion-service/pnpm-lock.yaml
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm exec eslint "{src,test}/**/*.ts"
+
+      - name: Typecheck (tsc --noEmit)
+        run: pnpm exec tsc --noEmit
+
+      # Transforms, the normalizers against the customers' real fixtures, the traps,
+      # idempotency, and the pollers against a fake source.
+      - name: Unit tests
+        run: pnpm test
+
+      # The webhook end to end over HTTP. Needs no mock customer APIs — the pollers
+      # are off in this suite, so it runs on a bare checkout.
+      - name: Integration tests
+        run: pnpm test:integration

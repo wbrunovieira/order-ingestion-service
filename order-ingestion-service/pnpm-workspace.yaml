@@ -1,11 +1,11 @@
 # pnpm 10+ requires dependency build scripts to be approved explicitly, and exits
 # non-zero until they are — which blocks `pnpm install` and every script that
-# implicitly installs first. Both entries below are build-time toolchain deps of
-# the scaffold (swc compiles TS for the tests via unplugin-swc; esbuild is
-# vitest's bundler), so their builds are allowed.
+# implicitly installs first. This is the home of that setting: pnpm no longer reads
+# the old `pnpm.onlyBuiltDependencies` field in package.json.
 #
-# Older pnpm reads the equivalent `pnpm.onlyBuiltDependencies` in package.json,
-# which is kept for compatibility.
+# Both entries are build-time toolchain deps of the scaffold itself (swc compiles
+# the TypeScript for vitest via unplugin-swc; esbuild is vitest's bundler), so their
+# builds are allowed.
 allowBuilds:
   '@swc/core': true
   esbuild: true

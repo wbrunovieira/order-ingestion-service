@@ -140,6 +140,24 @@ describe('BairroboxMapper', () => {
       expect(failure.reason).toMatch(/undeliverable/);
     });
 
+    it('never echoes the delivery address into a failure reason', () => {
+      // Reasons are stored, served on /stats, and would be shipped to a log
+      // aggregator. A customer's address must not ride along into all three.
+      const result = mapper.map(
+        { ...orderById('5580'), endereco: 'Rua Augusta 500 sem cidade' },
+        config,
+      );
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+
+      const [failure] = result.failures;
+      expect(failure.field).toBe('endereco'); // says WHERE
+      expect(failure.reason).toMatch(/could not be split/); // and WHAT
+      expect(failure.reason).not.toContain('Rua Augusta'); // but never the value
+      expect(failure.reason).not.toContain('500');
+    });
+
     it('flags an empty store code but still ingests the order', () => {
       // "5581" and "5582" carry store_code: "" — incomplete, not unfulfillable.
       const result = mapper.map(orderById('5581'), config);

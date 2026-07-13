@@ -372,6 +372,16 @@ their contract *before* they call to complain. That's the seed of the alerting i
 [`DESIGN.md`](../DESIGN.md) — here it's a counter; in production it's a metric with a
 threshold.
 
+**Failure reasons never echo PII.** A reason is persisted, served over HTTP, and would be
+shipped to a log aggregator — so an address that rides along into a reason ends up in
+three places nobody intended. Reasons name the **field** and the **problem**
+(`endereco: delivery address could not be split into a street and a city`), never the
+value; the value is one lookup away for whoever is entitled to it. Format-level values
+that aren't personal — an unmapped status, an unparseable timestamp — *are* kept, because
+they're exactly what you need to debug a contract change. At scale the same rule is what
+makes replay-from-a-trace safe: you replay masked records, not customer addresses (see
+[`DESIGN.md`](../DESIGN.md)).
+
 ## Tests
 
 ```bash

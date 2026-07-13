@@ -79,6 +79,12 @@ export class BairroboxMapper implements OrderMapper {
     );
 
     // An empty `endereco` is not a parse failure — it is an order nobody can deliver.
+    //
+    // Note what the reason does NOT say: the address itself. A failure reason is
+    // stored, served on /stats, and would be shipped to a log aggregator — echoing a
+    // customer's delivery address into all three is how personal data ends up
+    // somewhere nobody meant it to be. The field name and the problem are enough to
+    // act on; the value is one lookup away for anyone who is entitled to it.
     const rawAddress = asString(raw.endereco) ?? '';
     const address = splitAddressLine(rawAddress);
     if (address === undefined) {
@@ -86,7 +92,7 @@ export class BairroboxMapper implements OrderMapper {
         'endereco',
         rawAddress === ''
           ? 'delivery address is empty — the order is undeliverable'
-          : `could not split "${rawAddress}" into a street and a city`,
+          : 'delivery address could not be split into a street and a city',
       );
     }
 

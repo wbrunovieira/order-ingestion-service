@@ -377,8 +377,42 @@ threshold.
 ```bash
 pnpm test               # unit — transforms, normalizers, traps, idempotency, polling
 pnpm test:integration   # black-box HTTP against the app (webhook → orders)
+pnpm test:e2e           # the pollers against the REAL mock APIs (see below)
 pnpm lint
 ```
+
+### Verifying against the live mocks, not against my own fake
+
+The unit suite drives the pollers with a `FakeSource` **I wrote** — so it can only ever
+confirm what I already believed. But the two most load-bearing facts about Customer C
+are assumptions about *someone else's* implementation:
+
+1. requesting `page=1` **advances their cursor** (so a cycle must never ask twice), and
+2. a `429` is returned **before** that advance (so retrying a throttled page is safe,
+   and doesn't skip the records the cursor moved past).
+
+If either were wrong, the fake would keep passing and production would lose orders. So
+`pnpm test:e2e` checks them against the thing itself. It spawns the real mock project
+(two instances — one throttled to 3 req/min so a `429` can actually be provoked), and
+one case waits out a genuine 60-second rate-limit window. That's why it's a separate
+command and not in CI.
+
+```
+✓ walks GlobalGoods page 1 then page 2 and ingests what comes back
+✓ ingests BairroBox and rejects only what is genuinely undeliverable
+✓ CONFIRMS the hazard: asking GlobalGoods for page 1 advances THEIR cursor
+✓ does not double-write orders re-read across consecutive poll cycles
+✓ CONFIRMS a 429 does not advance their cursor — the reason retrying a page is safe
+  Test Files  1 passed (1)   Tests  5 passed (5)   62s
+```
+
+The last one is the point. Three successful `page=1` requests advance their cursor three
+times; the two `429`s advance it **zero** times — so the request after the backoff
+returns exactly the window the *first* one did. Had a rejected request moved the cursor,
+every `429` in production would have been quietly dropping orders.
+
+That safety is still **their implementation detail, not a contract**. The real fix is a
+client-side cursor, so re-reading is never destructive — see [`DESIGN.md`](../DESIGN.md).
 
 Tests are focused rather than exhaustive: they cover the specific traps this data
 plants (divide-by-zero, empty address, float money, three date formats, in-batch

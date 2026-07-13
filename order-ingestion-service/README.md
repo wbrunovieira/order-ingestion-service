@@ -197,7 +197,18 @@ assume explicitly, in config, rather than accidentally in code:
 Getting this wrong is a silent 3–6 hour error on every order. It's called out here
 because an assumption you can't see is a bug waiting to happen.
 
-### 5. Reject what's unactionable; flag what's merely incomplete
+### 5. Persistence is in-memory, behind a repository interface
+
+Orders live in a `Map` behind an abstract `OrderRepository`. The brief says not to
+spend the budget on infra, and for this scope a Map satisfies every requirement —
+including the one that actually matters, idempotency, since the stable `orderId` is
+the map key.
+
+What earns the abstraction is that swapping it is a one-line `useClass` in
+`PersistenceModule`: SQLite or Postgres implements the same four methods and nothing
+upstream changes. The cost of being wrong here is bounded, so the cheap option wins.
+
+### 6. Reject what's unactionable; flag what's merely incomplete
 
 A delivery platform can't act on an order with no address — but it *can* act on one
 with a missing store code. Treating those the same would either drop good orders or
@@ -273,9 +284,9 @@ file) plus a mapper — not a new pipeline. That's the point.
 
 | Route | Purpose |
 |---|---|
-| `POST /webhooks/:customer` | push ingestion (Customer A) |
+| `POST /webhooks/:customer` | push ingestion (Customer A). Accepts one order or a batch. Answers `202` — the order is ours now; an unknown customer is a `404` |
 | `GET /orders` | canonical orders |
-| `GET /stats` | per-customer counters (received / normalized / failed / duplicated) + recent mapping failures with reasons |
+| `GET /stats` | per-customer counters + recent mapping failures with reasons — *not built yet, see Build status* |
 | `GET /health/liveness`, `GET /health/readiness` | health checks (from the scaffold) |
 
 ---
@@ -299,14 +310,13 @@ kill the good ones in its batch**.
 ## Build status
 
 - [x] Scaffold, canonical model plan (this README)
-- [ ] Canonical order model + validation DTO
-- [ ] Customer config registry + status maps
-- [ ] Webhook ingestion (A) + shared pipeline
-- [ ] Persistence + idempotent upsert
+- [x] Canonical order model + validation DTO
+- [x] Customer config registry + status maps
+- [x] Webhook ingestion (A) + shared pipeline
+- [x] Persistence + idempotent upsert by stable `orderId`
 - [ ] Customer B poller + messy-flat normalizer
 - [ ] Customer C poller + international normalizer + pagination
 - [ ] Graceful failures with reasons + `/stats`
-- [ ] Tests
 - [ ] Rate-limit backoff (C)
 
 > Production concerns deliberately **not** built here — queues, DLQs, cursors,

@@ -16,6 +16,7 @@ import {
   asString,
   isRecord,
 } from '../raw';
+import { parseIsoDateTime } from '../transforms/date';
 import { sumLineTotals, toMinorUnits } from '../transforms/money';
 
 /**
@@ -53,7 +54,13 @@ export class FreshmartMapper implements OrderMapper {
       );
     }
 
-    const createdAt = this.parseTimestamp(raw.placed_at);
+    // FreshMart already sends an offset, so there is nothing to assume — but the
+    // parsing still lives in transforms/date.ts with everyone else's. Three feeds and
+    // three date formats is exactly the situation where a fourth private copy of "turn
+    // this into an instant" starts drifting from the other three.
+    const rawTimestamp = asNonEmptyString(raw.placed_at);
+    const createdAt =
+      rawTimestamp === undefined ? undefined : parseIsoDateTime(rawTimestamp);
     if (createdAt === undefined) {
       report.fail(
         'placed_at',
@@ -110,17 +117,6 @@ export class FreshmartMapper implements OrderMapper {
       },
       warnings: report.warnings,
     };
-  }
-
-  /** FreshMart already sends UTC; we only confirm it is a real instant. */
-  private parseTimestamp(value: unknown): string | undefined {
-    const raw = asNonEmptyString(value);
-    if (raw === undefined) {
-      return undefined;
-    }
-
-    const parsed = new Date(raw);
-    return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
   }
 
   private mapItems(

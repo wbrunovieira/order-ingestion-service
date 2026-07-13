@@ -183,19 +183,45 @@ describe('Webhook ingestion (integration)', () => {
       .expect(404);
   });
 
-  it('captures a garbage payload as a failure instead of crashing', async () => {
+  it('400s when NOTHING could be ingested, rather than saying 202 and dropping it', async () => {
+    // A 202 here would tell the customer their order is safe with us while we throw
+    // it away — the exact silent failure this service exists to prevent.
     const response = await request(app.getHttpServer())
       .post('/webhooks/freshmart')
       .send({ nothing: 'like an order' })
-      .expect(202);
+      .expect(400);
 
-    const outcome = data<IngestionOutcome>(response);
-    expect(outcome).toMatchObject({ received: 1, failed: 1 });
-    expect(outcome.failures[0].reason).toBeTruthy();
+    const body = response.body as {
+      error: string;
+      detail: {
+        received: number;
+        failed: number;
+        failures: { reason: string }[];
+      };
+    };
+
+    expect(body.error).toBe('NO_RECORD_COULD_BE_INGESTED');
+    expect(body.detail).toMatchObject({ received: 1, failed: 1 });
+    expect(body.detail.failures[0].reason).toBeTruthy();
 
     const listed = await request(app.getHttpServer())
       .get('/orders')
       .expect(200);
     expect(data<StoredOrder[]>(listed)).toHaveLength(0);
+  });
+
+  it('still 202s a batch where SOME records made it — the good ones are ours', async () => {
+    // The distinction that matters: a partial batch is accepted (we own the good
+    // orders), a total loss is rejected. Both come back with reasons.
+    const response = await request(app.getHttpServer())
+      .post('/webhooks/freshmart')
+      .send([{ nothing: 'like an order' }, freshmartOrder()])
+      .expect(202);
+
+    expect(data<IngestionOutcome>(response)).toMatchObject({
+      received: 2,
+      normalized: 1,
+      failed: 1,
+    });
   });
 });

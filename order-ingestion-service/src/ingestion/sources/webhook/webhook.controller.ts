@@ -1,14 +1,15 @@
 import {
   Body,
   Controller,
-  HttpCode,
   HttpStatus,
   NotFoundException,
   Param,
   Post,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { CustomerRegistryService } from '../../../customers/customer-registry.service';
-import { success } from '../../../utils/http-response';
+import { failure, success } from '../../../utils/http-response';
 import { IngestionPipelineService } from '../../pipeline/ingestion-pipeline.service';
 
 /**
@@ -27,14 +28,27 @@ export class WebhookController {
   ) {}
 
   /**
-   * 202, not 200: the customer is told we have taken responsibility for the order,
-   * not that every downstream effect is done. Today the pipeline runs inline because
-   * it is small; at scale this becomes "ack, then enqueue" without the contract
-   * changing for the customer (see DESIGN.md).
+   * The status code has to be honest, because the customer acts on it.
+   *
+   * 202 means we have taken responsibility for at least one order — including a
+   * partial batch, where the good records are ours and the bad ones come back with
+   * reasons so they can be fixed and resent. It is 202 rather than 200 because the
+   * customer is told we own the order, not that every downstream effect is finished:
+   * today the pipeline runs inline, and at scale this becomes "ack, then enqueue"
+   * without their contract changing (DESIGN.md).
+   *
+   * 400 means we took NOTHING. Sending back a 202 for a payload where every record
+   * failed would be telling the customer their orders are safe with us while we drop
+   * them — the exact silent failure this service exists to prevent. They get the
+   * failures, with the field and the reason, and a status their own monitoring will
+   * notice.
    */
   @Post(':customer')
-  @HttpCode(HttpStatus.ACCEPTED)
-  async receive(@Param('customer') customerId: string, @Body() body: unknown) {
+  async receive(
+    @Param('customer') customerId: string,
+    @Body() body: unknown,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const config = this.customers.find(customerId);
 
     if (config === undefined || config.mode !== 'push') {
@@ -48,8 +62,24 @@ export class WebhookController {
     const records = Array.isArray(body) ? body : [body];
     const outcome = await this.pipeline.ingest(config, records);
 
+    if (outcome.received > 0 && outcome.normalized === 0) {
+      response.status(HttpStatus.BAD_REQUEST);
+
+      return failure(
+        `Rejected all ${outcome.received} order(s) from ${config.name}`,
+        'NO_RECORD_COULD_BE_INGESTED',
+        {
+          received: outcome.received,
+          failed: outcome.failed,
+          failures: outcome.failures,
+        },
+      );
+    }
+
+    response.status(HttpStatus.ACCEPTED);
+
     return success(
-      `Accepted ${outcome.received} order(s) from ${config.name}`,
+      `Accepted ${outcome.normalized} of ${outcome.received} order(s) from ${config.name}`,
       outcome,
     );
   }

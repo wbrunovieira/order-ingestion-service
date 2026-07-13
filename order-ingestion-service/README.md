@@ -334,7 +334,7 @@ file) plus a mapper — not a new pipeline. That's the point.
 
 | Route | Purpose |
 |---|---|
-| `POST /webhooks/:customer` | push ingestion (Customer A). Accepts one order or a batch. Answers `202` — the order is ours now; an unknown customer is a `404` |
+| `POST /webhooks/:customer` | push ingestion (Customer A). One order or a batch. **`202`** when at least one record was ingested (a partial batch counts — the good orders are ours, the bad ones come back with reasons). **`400`** when *nothing* could be ingested: answering `202` there would tell the customer their orders are safe with us while we drop them. **`404`** for a customer we don't know, or one we poll rather than one who pushes |
 | `GET /orders` | canonical orders |
 | `GET /stats` | per-customer counters + recent mapping failures and warnings, each with a field and a reason |
 | `GET /health/liveness`, `GET /health/readiness` | health checks (from the scaffold) |

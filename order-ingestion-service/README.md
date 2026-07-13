@@ -1,5 +1,7 @@
 # Order Ingestion Service
 
+[![CI](https://github.com/wbrunovieira/order-ingestion-service/actions/workflows/ci.yml/badge.svg)](https://github.com/wbrunovieira/order-ingestion-service/actions/workflows/ci.yml)
+
 Ingests orders from three customers who agree on nothing — one pushes a clean
 webhook, two are polled at different rates with messy, international, paginated
 data — and turns all of them into **one canonical order**, so the rest of the

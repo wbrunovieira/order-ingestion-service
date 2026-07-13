@@ -1,5 +1,12 @@
 # Senior Solution Engineer Challenge
 
+[![CI](https://github.com/wbrunovieira/order-ingestion-service/actions/workflows/ci.yml/badge.svg)](https://github.com/wbrunovieira/order-ingestion-service/actions/workflows/ci.yml)
+
+> **The deliverables:** the service in [`order-ingestion-service/`](./order-ingestion-service)
+> (start with its [README](./order-ingestion-service/README.md) — design decisions,
+> assumptions, how to onboard a new customer) · [`DESIGN.md`](./DESIGN.md) — ingestion at
+> scale · [`SOLUTIONS.md`](./SOLUTIONS.md) — the nightly-CSV scenario.
+
 This repo has **two independent projects** in it, each with its own
 `package.json`, its own dependencies, and its own port. Don't confuse one
 for the other:
